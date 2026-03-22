@@ -6,7 +6,7 @@ export default function handler(req, res) {
     const challenge = req.query['hub.challenge'];
 
     // 'meu_token_123' é uma senha que VOCÊ inventa agora
-    if (mode === 'subscribe' && token === '0011c9e991667291b6aa8a7d00653a92') {
+    if (mode === 'subscribe' && token === 'meutoken123') {
       console.log('Validação concluída com sucesso!');
       return res.status(200).send(challenge);
     } else {
