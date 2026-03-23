@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === 'meutoken123') {
+    if (mode === 'subscribe' && token === '9b185eeb9caaaa39079529f6498ad617') {
       return res.status(200).send(challenge);
     }
     return res.status(403).send('Token inválido');
