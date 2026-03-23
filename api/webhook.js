@@ -1,36 +1,33 @@
 export default async function handler(req, res) {
-  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox/';
+  // 1. Definição da URL de destino (SaaS)
+  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
 
   try {
-    // 1. Construção da URL usando a API WHATWG (evita o DeprecationWarning)
+    // 2. Uso da API WHATWG (Recomendada pelo log de erro)
     const targetUrl = new URL(SAAS_URL);
     
-    // 2. Repassa os parâmetros da query (hub.challenge, etc)
-    if (req.query) {
-      for (const [key, value] of Object.entries(req.query)) {
-        targetUrl.searchParams.append(key, value);
-      }
-    }
+    // 3. Repasse manual de parâmetros para evitar funções legadas
+    const searchParams = new URLSearchParams(req.query);
+    targetUrl.search = searchParams.toString();
 
-    // 3. Executa o repasse
+    // 4. Execução do repasse (Proxy)
     const response = await fetch(targetUrl.href, {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
         'X-Hub-Signature-256': req.headers['x-hub-signature-256'] || '',
-        'Accept': 'application/json, text/plain, */*'
+        'Accept': '*/*'
       },
-      // Corpo da mensagem apenas para POST
+      // Corpo apenas para POST (mensagens reais)
       body: req.method === 'POST' ? JSON.stringify(req.body) : undefined
     });
 
     const responseData = await response.text();
     
-    // Log para diagnóstico no painel da Vercel
-    console.log(`Log: ${req.method} | Destino: ${targetUrl.pathname} | Status SaaS: ${response.status}`);
+    // Log detalhado para você ver na Vercel o que está acontecendo
+    console.log(`[${req.method}] Repasse para SaaS | Status: ${response.status}`);
 
-    // 4. Resposta para o Facebook
-    // Independentemente do 206 ou 200 do SaaS, entregamos 200 para o Facebook validar
+    // 5. Resposta para o Facebook (Sempre forçamos 200 para validar)
     if (req.method === 'GET') {
       return res.status(200).send(responseData);
     }
