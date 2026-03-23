@@ -1,37 +1,34 @@
 export default async function handler(req, res) {
   const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
 
-  // 1. Mantém a validação do Facebook ativa
-  if (req.method === 'GET') {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+  // Criar a URL de repasse mantendo os parâmetros (hub.challenge, etc)
+  const targetUrl = new URL(SAAS_URL);
+  Object.keys(req.query).forEach(key => targetUrl.searchParams.append(key, req.query[key]));
 
-    if (mode === 'subscribe' && token === 'meutoken123') {
-      return res.status(200).send(challenge);
+  try {
+    const response = await fetch(targetUrl.toString(), {
+      method: req.method, // Repassa exatamente o que vier (GET ou POST)
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hub-Signature-256': req.headers['x-hub-signature-256'] || ''
+      },
+      // Só envia body se for POST
+      body: req.method === 'POST' ? JSON.stringify(req.body) : undefined
+    });
+
+    const responseData = await response.text();
+    console.log(`Repasse [${req.method}] para SaaS. Status: ${response.status}`);
+
+    // Se o Facebook estiver validando (GET), precisamos devolver o challenge que o SAAS retornou
+    if (req.method === 'GET') {
+      return res.status(response.status).send(responseData);
     }
-    return res.status(403).send('Token inválido');
-  }
 
-  // 2. REPASSE DE MENSAGENS (Onde a mágica acontece)
-  if (req.method === 'POST') {
-    try {
-      // Enviando o que recebeu do Facebook direto para o seu SaaS
-      const response = await fetch(SAAS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Repassamos os headers de segurança caso o SaaS exija
-          'X-Hub-Signature-256': req.headers['x-hub-signature-256'] 
-        },
-        body: JSON.stringify(req.body)
-      });
-
-      console.log('Repasse para o SaaS concluído. Status:', response.status);
-      return res.status(200).send('EVENT_RECEIVED');
-    } catch (error) {
-      console.error('Erro ao repassar para o SaaS:', error);
-      return res.status(500).send('Erro no repasse');
-    }
+    // Para mensagens (POST), confirmamos o recebimento para o Facebook
+    return res.status(200).send('EVENT_RECEIVED');
+    
+  } catch (error) {
+    console.error('Erro no repasse:', error);
+    return res.status(500).send('Erro interno no servidor');
   }
 }
