@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
+  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox/';
 
   try {
     // Usando a API moderna para evitar o aviso de Deprecation
