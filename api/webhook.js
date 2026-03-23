@@ -1,41 +1,38 @@
 export default async function handler(req, res) {
-  // AJUSTE: Adicionada a barra '/' no final para evitar o erro 405 Method Not Allowed
-  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
+  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox/';
 
   try {
     const url = new URL(SAAS_URL);
     
-    // Repassa os parâmetros de query (importante para a validação do Facebook)
+    // Repassa apenas os parâmetros de validação (hub.mode, hub.challenge, etc)
     if (req.query) {
       Object.keys(req.query).forEach(key => url.searchParams.append(key, req.query[key]));
     }
 
-    // Configuração do repasse
     const options = {
       method: req.method,
       headers: {
-        ...req.headers, // Repassa todos os headers originais (incluindo a assinatura X-Hub)
-        'host': url.hostname, // Ajusta o host para o destino final
+        'Content-Type': 'application/json',
+        'X-Hub-Signature-256': req.headers['x-hub-signature-256'] || '',
+        'Accept': '*/*'
       }
     };
 
-    // Só inclui o corpo da requisição se não for um GET
-    if (req.method !== 'GET' && req.body) {
+    // Só inclui o corpo se for um evento de mensagem (POST)
+    if (req.method === 'POST' && req.body) {
       options.body = JSON.stringify(req.body);
     }
 
     const response = await fetch(url.toString(), options);
     const responseData = await response.text();
     
-    // Log para você acompanhar no painel da Vercel
-    console.log(`Encaminhado: ${req.method} | Status do SaaS: ${response.status}`);
+    console.log(`Minimal Proxy: ${req.method} | SaaS Status: ${response.status}`);
 
-    // Retorna para o Facebook exatamente o que o SaaS respondeu
-    // Se for a validação (GET), o Facebook precisa receber o 'hub.challenge' que o SaaS ecoar
+    // Devolve para o Facebook exatamente o que o SaaS respondeu
     return res.status(response.status).send(responseData);
 
   } catch (error) {
-    console.error('Erro no proxy de webhook:', error);
-    return res.status(500).send('Erro interno no servidor de máscara');
+    console.error('Erro no repasse minimalista:', error);
+    return res.status(500).send('Erro Interno');
   }
 }
