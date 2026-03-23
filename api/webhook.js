@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   // AJUSTE: Adicionada a barra '/' no final para evitar o erro 405 Method Not Allowed
-  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox/';
+  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
 
   try {
     const url = new URL(SAAS_URL);
