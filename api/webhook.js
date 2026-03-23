@@ -1,22 +1,37 @@
-export default function handler(req, res) {
-  // O Facebook envia um desafio (challenge) para validar sua URL
+export default async function handler(req, res) {
+  const SAAS_URL = 'https://system-design-project-0edae.goskip.app/webhook/whatsapp-inbox';
+
+  // 1. Mantém a validação do Facebook ativa
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    // 'meu_token_123' é uma senha que VOCÊ inventa agora
     if (mode === 'subscribe' && token === 'meutoken123') {
-      console.log('Validação concluída com sucesso!');
       return res.status(200).send(challenge);
-    } else {
-      return res.status(403).send('Token de verificação inválido');
     }
+    return res.status(403).send('Token inválido');
   }
 
-  // Reservado para quando o Facebook enviar dados reais (mensagens, leads, etc)
+  // 2. REPASSE DE MENSAGENS (Onde a mágica acontece)
   if (req.method === 'POST') {
-    console.log('Dados recebidos:', req.body);
-    return res.status(200).json({ status: 'sucesso' });
+    try {
+      // Enviando o que recebeu do Facebook direto para o seu SaaS
+      const response = await fetch(SAAS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Repassamos os headers de segurança caso o SaaS exija
+          'X-Hub-Signature-256': req.headers['x-hub-signature-256'] 
+        },
+        body: JSON.stringify(req.body)
+      });
+
+      console.log('Repasse para o SaaS concluído. Status:', response.status);
+      return res.status(200).send('EVENT_RECEIVED');
+    } catch (error) {
+      console.error('Erro ao repassar para o SaaS:', error);
+      return res.status(500).send('Erro no repasse');
+    }
   }
 }
